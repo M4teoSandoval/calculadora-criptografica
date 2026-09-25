@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+    <title>{% block titulo %}calculadora_criptografica{% endblock %}</title>
+
+    <link rel="icon"
+          href="/static/img/logo.svg"
+          type="image/svg+xml">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <div class="lineas"></div>
+
+    <div class="terminal">
+
+        <div class="barra">
+            <span class="luz luz-roja"></span>
+            <span class="luz luz-amarilla"></span>
+            <span class="luz luz-verde"></span>
+            <span class="ruta">
+                ~/criptografia{% block ruta %}{% endblock %}
+            </span>
+        </div>
+
+        <div class="cuerpo">
+            {% block contenido %}{% endblock %}
+        </div>
+
+        <div class="pie">
+            <span>calculadora_criptografica v1.0</span>
+            <a href="https://github.com/M4teoSandoval"
+               target="_blank"
+               rel="noopener noreferrer">desarrollado por Mateo Sandoval</a>
+            <a href="/health">health</a>
+        </div>
+
+    </div>
+
+    <script src="/static/app.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block titulo %}Calculadora Criptográfica{% endblock %}
+{% block ruta %} :: inicio{% endblock %}
+
+{% block contenido %}
+
+    <header class="cabecera">
+
+        <img class="logo"
+             src="/static/img/logo.svg"
+             alt="Logo de la calculadora criptográfica"
+             width="72"
+             height="72">
+
+        <div>
+            <h1 class="titulo">Calculadora Criptográfica</h1>
+            <p class="subtitulo">
+                // herramienta académica de ciberseguridad
+            </p>
+        </div>
+
+    </header>
+
+    <pre class="registro" id="registro">[ ok ] conectando...</pre>
+
+    <p class="contador">
+        {{ total }} algoritmos · 6 secciones ·
+        la consola y la web usan el mismo código
+    </p>
+
+    <div class="rejilla">
+
+        {% for seccion in secciones %}
+
+        <a class="tarjeta" href="/{{ seccion.clave }}">
+
+            <span class="codigo">{{ seccion.numero }}</span>
+
+            <h2>{{ seccion.titulo }}</h2>
+
+            <p>{{ seccion.descripcion }}</p>
+
+            <span class="pie-tarjeta">
+                {{ seccion.resumen }}
+                <b>&rarr;</b>
+            </span>
+
+        </a>
+
+        {% endfor %}
+
+    </div>
+
+{% endblock %}

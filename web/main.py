@@ -1,1212 +1,615 @@
-from fastapi import FastAPI, Form
+"""Interfaz web de la Calculadora Criptografica.
+
+Este archivo NO contiene algoritmos: solo declara las 24 herramientas
+del taller y las conecta con las funciones puras del paquete app/.
+La consola (calculadora.py) usa esas mismas funciones, de modo que la
+logica criptografica vive en un unico lugar.
+"""
+
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
-import calculadora
+from app import (
+    codificacion,
+    criptografia_clasica,
+    criptografia_moderna,
+    hashes,
+    matematica_modular,
+    mensaje_error,
+    salt,
+)
 
+BASE = Path(__file__).resolve().parent
 
 app = FastAPI(
     title="Calculadora Criptográfica",
     description="Calculadora de operaciones y algoritmos criptográficos",
-    version="1.0.0"
+    version="1.0.0",
 )
 
+app.mount(
+    "/static",
+    StaticFiles(directory=str(BASE / "static")),
+    name="static",
+)
 
-# ============================================================
-# ESTILOS GENERALES
-# ============================================================
-
-STYLE = """
-<style>
-    * {
-        box-sizing: border-box;
-    }
-
-    body {
-        font-family: Arial, sans-serif;
-        background: #0f172a;
-        color: white;
-        margin: 0;
-        padding: 30px 20px;
-    }
-
-    .container {
-        max-width: 900px;
-        margin: auto;
-    }
-
-    .small-container {
-        max-width: 650px;
-        margin: auto;
-    }
-
-    a {
-        color: #60a5fa;
-        text-decoration: none;
-    }
-
-    h1 {
-        margin-top: 25px;
-        margin-bottom: 10px;
-    }
-
-    h2 {
-        margin-bottom: 10px;
-    }
-
-    .description {
-        color: #94a3b8;
-        line-height: 1.5;
-    }
-
-    .options {
-        display: grid;
-        grid-template-columns:
-            repeat(auto-fit, minmax(250px, 1fr));
-        gap: 15px;
-        margin-top: 30px;
-    }
-
-    .option {
-        background: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 12px;
-        padding: 20px;
-    }
-
-    .option h3 {
-        margin-bottom: 8px;
-    }
-
-    .option p {
-        color: #94a3b8;
-        margin-bottom: 15px;
-        line-height: 1.4;
-    }
-
-    .btn {
-        display: block;
-        width: 100%;
-        padding: 12px;
-        border-radius: 7px;
-        border: none;
-        background: #3b82f6;
-        color: white;
-        text-decoration: none;
-        text-align: center;
-        cursor: pointer;
-        font-size: 15px;
-    }
-
-    .btn:hover {
-        background: #2563eb;
-    }
-
-    form {
-        background: #1e293b;
-        padding: 25px;
-        border-radius: 12px;
-        margin-top: 25px;
-        border: 1px solid #334155;
-    }
-
-    label {
-        display: block;
-        margin-bottom: 7px;
-        margin-top: 15px;
-        font-weight: bold;
-    }
-
-    input {
-        width: 100%;
-        padding: 12px;
-        border-radius: 7px;
-        border: 1px solid #475569;
-        background: #0f172a;
-        color: white;
-        font-size: 16px;
-    }
-
-    button {
-        width: 100%;
-        margin-top: 20px;
-        padding: 12px;
-        border: none;
-        border-radius: 7px;
-        background: #3b82f6;
-        color: white;
-        font-size: 16px;
-        cursor: pointer;
-    }
-
-    button:hover {
-        background: #2563eb;
-    }
-
-    .result {
-        margin-top: 20px;
-        background: #172554;
-        padding: 20px;
-        border-radius: 10px;
-        border: 1px solid #2563eb;
-    }
-
-    .error {
-        margin-top: 20px;
-        background: #450a0a;
-        padding: 20px;
-        border-radius: 10px;
-        border: 1px solid #991b1b;
-    }
-
-    .success {
-        color: #86efac;
-    }
-
-    .danger {
-        color: #fca5a5;
-    }
-
-    .formula {
-        background: #0f172a;
-        padding: 15px;
-        border-radius: 8px;
-        margin-top: 15px;
-        font-family: monospace;
-        overflow-x: auto;
-    }
-
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-        font-size: 14px;
-    }
-
-    th, td {
-        border: 1px solid #475569;
-        padding: 10px;
-        text-align: center;
-    }
-
-    th {
-        background: #334155;
-    }
-
-    td {
-        background: #1e293b;
-    }
-
-    .table-container {
-        overflow-x: auto;
-    }
-
-    .actions {
-        display: grid;
-        gap: 10px;
-        margin-top: 20px;
-    }
-
-    @media (max-width: 600px) {
-        body {
-            padding: 20px 12px;
-        }
-
-        table {
-            font-size: 12px;
-        }
-    }
-</style>
-"""
+plantillas = Jinja2Templates(directory=str(BASE / "templates"))
 
 
 # ============================================================
-# PÁGINA PRINCIPAL
+# AYUDAS PARA DECLARAR LOS FORMULARIOS
 # ============================================================
 
-@app.get("/", response_class=HTMLResponse)
-def inicio():
+def numero(nombre, etiqueta, extra=""):
+    return {
+        "name": nombre,
+        "label": etiqueta,
+        "type": "number",
+        "extra": extra,
+    }
 
-    return f"""
-    <!DOCTYPE html>
-    <html lang="es">
 
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1.0">
-        <title>Calculadora Criptográfica</title>
+def texto(nombre, etiqueta, extra=""):
+    return {
+        "name": nombre,
+        "label": etiqueta,
+        "type": "text",
+        "extra": extra,
+    }
 
-        {STYLE}
-    </head>
 
-    <body>
+def elegir(nombre, etiqueta, opciones):
+    return {
+        "name": nombre,
+        "label": etiqueta,
+        "type": "select",
+        "options": opciones,
+    }
 
-        <div class="container">
 
-            <h1>🔐 Calculadora Criptográfica</h1>
-
-            <p class="description">
-                Herramienta académica de Ciberseguridad
-            </p>
-
-            <div class="options">
-
-                <div class="option">
-                    <h2>1. Matemática Modular</h2>
-
-                    <p>
-                        Módulo, inversos, MCD y
-                        Algoritmo Extendido de Euclides.
-                    </p>
-
-                    <a class="btn" href="/modular">
-                        Ingresar
-                    </a>
-                </div>
-
-                <div class="option">
-                    <h2>2. Criptografía Clásica</h2>
-                    <p>
-                        César, Vernam, Atbash, Afín,
-                        Módulo 27 y sustitución.
-                    </p>
-                    <button disabled>
-                        Próximamente
-                    </button>
-                </div>
-
-                <div class="option">
-                    <h2>3. Criptografía Moderna</h2>
-                    <p>
-                        Diffie-Hellman, RSA y
-                        exponenciación rápida.
-                    </p>
-                    <button disabled>
-                        Próximamente
-                    </button>
-                </div>
-
-                <div class="option">
-                    <h2>4. Algoritmos Hash</h2>
-                    <p>
-                        MD5, SHA-256 y SHA-512.
-                    </p>
-                    <button disabled>
-                        Próximamente
-                    </button>
-                </div>
-
-                <div class="option">
-                    <h2>5. Codificación</h2>
-                    <p>
-                        ASCII, hexadecimal,
-                        binario y Base64.
-                    </p>
-                    <button disabled>
-                        Próximamente
-                    </button>
-                </div>
-
-                <div class="option">
-                    <h2>6. Uso de SALT</h2>
-                    <p>
-                        Hash de contraseñas utilizando
-                        diferentes valores de SALT.
-                    </p>
-                    <button disabled>
-                        Próximamente
-                    </button>
-                </div>
-
-            </div>
-
-        </div>
-
-    </body>
-    </html>
-    """
+CIFRAR = [("C", "Cifrar"), ("D", "Descifrar")]
+CONVERTIR = [("C", "Codificar"), ("D", "Decodificar")]
 
 
 # ============================================================
-# MENÚ MATEMÁTICA MODULAR
+# SECCIONES DEL MENÚ
 # ============================================================
 
-@app.get("/modular", response_class=HTMLResponse)
-def menu_modular():
-
-    return f"""
-    <!DOCTYPE html>
-    <html lang="es">
-
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1.0">
-        <title>Matemática Modular</title>
-        {STYLE}
-    </head>
-
-    <body>
-
-        <div class="container">
-
-            <a href="/">
-                ← Volver al inicio
-            </a>
-
-            <h1>1. Matemática Modular</h1>
-
-            <p class="description">
-                Selecciona la operación que deseas realizar.
-            </p>
-
-            <div class="options">
-
-                <div class="option">
-                    <h3>1.1 Módulo</h3>
-                    <p>Calcula a mod n.</p>
-                    <a class="btn" href="/modular/modulo">
-                        Abrir
-                    </a>
-                </div>
-
-                <div class="option">
-                    <h3>1.2 Inverso aditivo</h3>
-                    <p>
-                        Calcula el inverso aditivo
-                        de un número módulo n.
-                    </p>
-                    <a class="btn"
-                       href="/modular/inverso-aditivo">
-                        Abrir
-                    </a>
-                </div>
-
-                <div class="option">
-                    <h3>1.3 Inverso XOR</h3>
-                    <p>
-                        Realiza XOR y comprueba
-                        su reversibilidad.
-                    </p>
-                    <a class="btn"
-                       href="/modular/inverso-xor">
-                        Abrir
-                    </a>
-                </div>
-
-                <div class="option">
-                    <h3>1.4 MCD</h3>
-                    <p>
-                        Calcula el MCD e indica
-                        si existe inverso multiplicativo.
-                    </p>
-                    <a class="btn"
-                       href="/modular/mcd">
-                        Abrir
-                    </a>
-                </div>
-
-                <div class="option">
-                    <h3>1.5 Inverso tradicional</h3>
-                    <p>
-                        Encuentra el inverso multiplicativo
-                        mediante búsqueda tradicional.
-                    </p>
-                    <a class="btn"
-                       href="/modular/inverso-tradicional">
-                        Abrir
-                    </a>
-                </div>
-
-                <div class="option">
-                    <h3>1.6 AEE</h3>
-                    <p>
-                        Algoritmo Extendido de Euclides
-                        mostrando las rondas y la tabla.
-                    </p>
-                    <a class="btn"
-                       href="/modular/aee">
-                        Abrir
-                    </a>
-                </div>
-
-            </div>
-
-        </div>
-
-    </body>
-    </html>
-    """
+SECCIONES = [
+    {
+        "clave": "modular",
+        "numero": "1",
+        "titulo": "Operaciones matemáticas modulares",
+        "descripcion": "Módulo, inversos, MCD y Algoritmo Extendido "
+                       "de Euclides con su tabla de rondas.",
+        "resumen": "6 algoritmos",
+    },
+    {
+        "clave": "clasica",
+        "numero": "2",
+        "titulo": "Criptografía clásica",
+        "descripcion": "César, Vernam, Atbash, afín, módulo 27, "
+                       "transposición y sustitución simple.",
+        "resumen": "7 algoritmos",
+    },
+    {
+        "clave": "moderna",
+        "numero": "3",
+        "titulo": "Criptografía moderna",
+        "descripcion": "Diffie-Hellman, RSA y exponenciación rápida "
+                       "por cuadrado binario.",
+        "resumen": "3 algoritmos",
+    },
+    {
+        "clave": "hash",
+        "numero": "4",
+        "titulo": "Algoritmos Hash",
+        "descripcion": "MD5, SHA-256 y SHA-512 sobre texto en UTF-8.",
+        "resumen": "3 algoritmos",
+    },
+    {
+        "clave": "codificacion",
+        "numero": "5",
+        "titulo": "Codificación",
+        "descripcion": "ASCII, hexadecimal, binario y Base64, "
+                       "codificando y decodificando.",
+        "resumen": "4 formatos",
+    },
+    {
+        "clave": "salt",
+        "numero": "6",
+        "titulo": "Uso de SALT",
+        "descripcion": "El mismo hash de una misma clave con sales "
+                       "aleatorias diferentes.",
+        "resumen": "3 algoritmos",
+    },
+]
 
 
 # ============================================================
-# FUNCIÓN PARA CREAR PÁGINAS DE FORMULARIO
+# HERRAMIENTAS
+#
+# Cada entrada describe un formulario y la funcion de app/ que
+# ejecuta. Agregar un algoritmo al taller es agregar una entrada
+# aqui: no hay que escribir ni una ruta ni una plantilla nueva.
 # ============================================================
 
-def formulario_base(
-    titulo,
-    descripcion,
-    campos,
-    action
-):
-
-    campos_html = ""
-
-    for campo in campos:
-        campos_html += f"""
-        <label for="{campo['name']}">
-            {campo['label']}
-        </label>
-
-        <input
-            type="{campo.get('type', 'number')}"
-            id="{campo['name']}"
-            name="{campo['name']}"
-            {campo.get('extra', '')}
-            required
-        >
-        """
-
-    return f"""
-    <!DOCTYPE html>
-    <html lang="es">
-
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1.0">
-        <title>{titulo}</title>
-        {STYLE}
-    </head>
-
-    <body>
-
-        <div class="small-container">
-
-            <a href="/modular">
-                ← Volver a Matemática Modular
-            </a>
-
-            <h1>{titulo}</h1>
-
-            <p class="description">
-                {descripcion}
-            </p>
-
-            <form method="post" action="{action}">
-
-                {campos_html}
-
-                <button type="submit">
-                    CALCULAR
-                </button>
-
-            </form>
-
-        </div>
-
-    </body>
-
-    </html>
-    """
-
-
-# ============================================================
-# 1.1 MÓDULO
-# ============================================================
-
-@app.get("/modular/modulo", response_class=HTMLResponse)
-def pagina_modulo():
-
-    return formulario_base(
-        "1.1 Calcular módulo",
-        "Calcula el resultado de a mod n.",
-        [
-            {
-                "name": "a",
-                "label": "Número a"
-            },
-            {
-                "name": "n",
-                "label": "Módulo n",
-                "extra": "min='1'"
-            }
+HERRAMIENTAS = [
+    # ------------------------- 1. MODULAR -------------------------
+    {
+        "seccion": "modular",
+        "codigo": "1.1",
+        "slug": "modulo",
+        "titulo": "Calcular módulo",
+        "descripcion": "Calcula el resultado de a mod n.",
+        "funcion": matematica_modular.calcular_modulo,
+        "campos": [
+            numero("a", "Número a"),
+            numero("n", "Módulo n"),
         ],
-        "/modular/modulo"
-    )
-
-
-@app.post("/modular/modulo", response_class=HTMLResponse)
-def calcular_modulo(
-    a: int = Form(...),
-    n: int = Form(...)
-):
-
-    if n <= 0:
-
-        resultado = """
-        <div class="error">
-            El módulo n debe ser mayor que 0.
-        </div>
-        """
-
-    else:
-
-        resultado_calculo = a % n
-
-        resultado = f"""
-        <div class="result">
-
-            <h2>Resultado</h2>
-
-            <div class="formula">
-                {a} mod {n} = {resultado_calculo}
-            </div>
-
-        </div>
-        """
-
-    return pagina_resultado(
-        "1.1 Módulo",
-        resultado
-    )
-
-
-# ============================================================
-# 1.2 INVERSO ADITIVO
-# ============================================================
-
-@app.get("/modular/inverso-aditivo",
-         response_class=HTMLResponse)
-def pagina_inverso_aditivo():
-
-    return formulario_base(
-        "1.2 Inverso aditivo",
-        "Calcula el inverso aditivo de a módulo n.",
-        [
-            {
-                "name": "a",
-                "label": "Número a"
-            },
-            {
-                "name": "n",
-                "label": "Módulo n",
-                "extra": "min='1'"
-            }
+    },
+    {
+        "seccion": "modular",
+        "codigo": "1.2",
+        "slug": "inverso-aditivo",
+        "titulo": "Calcular inverso aditivo",
+        "descripcion": "Elemento que suma cero módulo n.",
+        "funcion": matematica_modular.inverso_aditivo,
+        "campos": [
+            numero("a", "Número a"),
+            numero("n", "Módulo n", "min='1'"),
         ],
-        "/modular/inverso-aditivo"
-    )
-
-
-@app.post("/modular/inverso-aditivo",
-          response_class=HTMLResponse)
-def calcular_inverso_aditivo(
-    a: int = Form(...),
-    n: int = Form(...)
-):
-
-    if n <= 0:
-
-        resultado = """
-        <div class="error">
-            El módulo n debe ser mayor que 0.
-        </div>
-        """
-
-    else:
-
-        inverso = (-a) % n
-
-        resultado = f"""
-        <div class="result">
-
-            <h2>Resultado</h2>
-
-            <div class="formula">
-                Inverso aditivo de {a} mod {n}
-                = {inverso}
-            </div>
-
-            <p>
-                Comprobación:
-                ({a} + {inverso}) mod {n}
-                = {(a + inverso) % n}
-            </p>
-
-        </div>
-        """
-
-    return pagina_resultado(
-        "1.2 Inverso aditivo",
-        resultado
-    )
-
-
-# ============================================================
-# 1.3 INVERSO XOR
-# ============================================================
-
-@app.get("/modular/inverso-xor",
-         response_class=HTMLResponse)
-def pagina_inverso_xor():
-
-    return formulario_base(
-        "1.3 Inverso XOR",
-        "Realiza XOR entre dos valores y comprueba la reversibilidad.",
-        [
-            {
-                "name": "a",
-                "label": "Valor a"
-            },
-            {
-                "name": "b",
-                "label": "Valor b"
-            }
+    },
+    {
+        "seccion": "modular",
+        "codigo": "1.3",
+        "slug": "inverso-xor",
+        "titulo": "Calcular inverso de XOR",
+        "descripcion": "XOR es su propio inverso: se comprueba al "
+                       "repetir la operación.",
+        "funcion": matematica_modular.inverso_xor,
+        "campos": [
+            numero("a", "Primer número"),
+            numero("b", "Segundo número"),
         ],
-        "/modular/inverso-xor"
-    )
-
-
-@app.post("/modular/inverso-xor",
-          response_class=HTMLResponse)
-def calcular_inverso_xor(
-    a: int = Form(...),
-    b: int = Form(...)
-):
-
-    xor = a ^ b
-    recuperado = xor ^ b
-
-    resultado = f"""
-    <div class="result">
-
-        <h2>Resultado</h2>
-
-        <div class="formula">
-            {a} XOR {b} = {xor}
-        </div>
-
-        <p>
-            Aplicando XOR nuevamente:
-        </p>
-
-        <div class="formula">
-            {xor} XOR {b} = {recuperado}
-        </div>
-
-        <p class="success">
-            ✓ Se recupera el valor original:
-            {recuperado} = {a}
-        </p>
-
-    </div>
-    """
-
-    return pagina_resultado(
-        "1.3 Inverso XOR",
-        resultado
-    )
-
-
-# ============================================================
-# 1.4 MCD
-# ============================================================
-
-@app.get("/modular/mcd",
-         response_class=HTMLResponse)
-def pagina_mcd():
-
-    return formulario_base(
-        "1.4 MCD",
-        "Calcula el máximo común divisor y determina si existe inverso multiplicativo.",
-        [
-            {
-                "name": "a",
-                "label": "Número a"
-            },
-            {
-                "name": "n",
-                "label": "Módulo n",
-                "extra": "min='1'"
-            }
+    },
+    {
+        "seccion": "modular",
+        "codigo": "1.4",
+        "slug": "mcd",
+        "titulo": "Máximo común divisor",
+        "descripcion": "Calcula MCD(a, n) e indica si existe el "
+                       "inverso multiplicativo.",
+        "funcion": matematica_modular.calcular_mcd,
+        "campos": [
+            numero("a", "Número a"),
+            numero("n", "Módulo n", "min='1'"),
         ],
-        "/modular/mcd"
+    },
+    {
+        "seccion": "modular",
+        "codigo": "1.5",
+        "slug": "inverso-tradicional",
+        "titulo": "Inverso multiplicativo tradicional",
+        "descripcion": "Busca por método tradicional un x tal que "
+                       "(a × x) mod n = 1.",
+        "funcion": (
+            matematica_modular.inverso_multiplicativo_tradicional
+        ),
+        "campos": [
+            numero("a", "Número a"),
+            numero("n", "Módulo n", "min='1'"),
+        ],
+    },
+    {
+        "seccion": "modular",
+        "codigo": "1.6",
+        "slug": "aee",
+        "titulo": "Algoritmo Extendido de Euclides",
+        "descripcion": "Inverso multiplicativo por AEE, indicando "
+                       "cuántas rondas y mostrando la tabla completa.",
+        "funcion": matematica_modular.inverso_multiplicativo_aee,
+        "campos": [
+            numero("a", "Número a"),
+            numero("n", "Módulo n", "min='1'"),
+        ],
+    },
+
+    # ------------------------- 2. CLÁSICA -------------------------
+    {
+        "seccion": "clasica",
+        "codigo": "2.1",
+        "slug": "modulo-27",
+        "titulo": "Cifrado Módulo 27",
+        "descripcion": "Cifra sobre un alfabeto de 27 símbolos "
+                       "(espacio más A-Z).",
+        "funcion": criptografia_clasica.modulo_27,
+        "campos": [
+            texto("texto", "Texto"),
+            numero("desplazamiento", "Desplazamiento"),
+        ],
+    },
+    {
+        "seccion": "clasica",
+        "codigo": "2.2",
+        "slug": "cesar",
+        "titulo": "Cifrado César",
+        "descripcion": "Desplaza cada letra un número fijo de "
+                       "posiciones.",
+        "funcion": criptografia_clasica.cesar,
+        "campos": [
+            texto("texto", "Texto"),
+            numero("desplazamiento", "Desplazamiento"),
+            elegir("modo", "Operación", CIFRAR),
+        ],
+        "ensamblar": lambda v: {
+            "texto": v["texto"],
+            "desplazamiento": v["desplazamiento"],
+            "descifrar": v["modo"] == "D",
+        },
+    },
+    {
+        "seccion": "clasica",
+        "codigo": "2.3",
+        "slug": "vernam",
+        "titulo": "Cifrado Vernam",
+        "descripcion": "Aplica XOR entre texto y clave, que deben "
+                       "tener la misma longitud.",
+        "funcion": criptografia_clasica.vernam,
+        "campos": [
+            texto("texto", "Texto"),
+            texto("clave", "Clave"),
+        ],
+    },
+    {
+        "seccion": "clasica",
+        "codigo": "2.4",
+        "slug": "atbash",
+        "titulo": "Cifrado Atbash",
+        "descripcion": "Refleja el alfabeto: A↔Z, B↔Y, C↔X.",
+        "funcion": criptografia_clasica.atbash,
+        "campos": [
+            texto("texto", "Texto"),
+        ],
+    },
+    {
+        "seccion": "clasica",
+        "codigo": "2.5",
+        "slug": "transposicion-columnar",
+        "titulo": "Transposición columnar simple",
+        "descripcion": "Escribe el texto en una matriz y lee las "
+                       "columnas.",
+        "funcion": criptografia_clasica.transposicion_columnar,
+        "campos": [
+            texto("texto", "Texto (los espacios se ignoran)"),
+            numero("columnas", "Número de columnas", "min='1'"),
+        ],
+    },
+    {
+        "seccion": "clasica",
+        "codigo": "2.6",
+        "slug": "afin",
+        "titulo": "Cifrado afín",
+        "descripcion": "y = (a · x + b) mod 26, con a coprimo "
+                       "con 26.",
+        "funcion": criptografia_clasica.afin,
+        "campos": [
+            texto("texto", "Texto"),
+            numero("a", "Valor de a"),
+            numero("b", "Valor de b"),
+            elegir("modo", "Operación", CIFRAR),
+        ],
+    },
+    {
+        "seccion": "clasica",
+        "codigo": "2.7",
+        "slug": "sustitucion-simple",
+        "titulo": "Sustitución simple",
+        "descripcion": "Sustituye cada letra con el alfabeto de 26 "
+                       "letras que se indique.",
+        "funcion": criptografia_clasica.sustitucion_simple,
+        "campos": [
+            texto("clave", "Alfabeto de sustitución (26 letras)",
+                  "maxlength='26'"),
+            texto("texto", "Texto"),
+            elegir("modo", "Operación", CIFRAR),
+        ],
+    },
+
+    # ------------------------- 3. MODERNA -------------------------
+    {
+        "seccion": "moderna",
+        "codigo": "3.1",
+        "slug": "diffie-hellman",
+        "titulo": "Diffie-Hellman",
+        "descripcion": "Intercambio de claves sobre un primo p y una "
+                       "raíz primitiva g.",
+        "funcion": criptografia_moderna.diffie_hellman,
+        "campos": [
+            numero("p", "Número primo p"),
+            numero("g", "Raíz primitiva g"),
+            numero("a", "Clave privada de Alice"),
+            numero("b", "Clave privada de Bob"),
+        ],
+    },
+    {
+        "seccion": "moderna",
+        "codigo": "3.2",
+        "slug": "rsa",
+        "titulo": "RSA",
+        "descripcion": "Calcula n, φ(n), las claves y cifra un mensaje "
+                       "numérico.",
+        "funcion": criptografia_moderna.rsa,
+        "campos": [
+            numero("p", "Número primo p"),
+            numero("q", "Número primo q"),
+            numero("e", "Exponente e"),
+            numero("mensaje", "Mensaje (menor que n)", "min='0'"),
+        ],
+    },
+    {
+        "seccion": "moderna",
+        "codigo": "3.3",
+        "slug": "exponenciacion-rapida",
+        "titulo": "Exponenciación rápida",
+        "descripcion": "base^exponente mod módulo por cuadrado "
+                       "binario, ronda a ronda.",
+        "funcion": criptografia_moderna.exponenciacion_rapida,
+        "campos": [
+            numero("base", "Base"),
+            numero("exponente", "Exponente", "min='0'"),
+            numero("modulo", "Módulo", "min='1'"),
+        ],
+    },
+
+    # -------------------------- 4. HASH ---------------------------
+    {
+        "seccion": "hash",
+        "codigo": "4.1",
+        "slug": "md5",
+        "titulo": "MD5",
+        "descripcion": "Huella de 128 bits del texto.",
+        "funcion": hashes.hash_md5,
+        "campos": [
+            texto("texto", "Texto"),
+        ],
+    },
+    {
+        "seccion": "hash",
+        "codigo": "4.2",
+        "slug": "sha256",
+        "titulo": "SHA-256",
+        "descripcion": "Huella de 256 bits del texto.",
+        "funcion": hashes.hash_sha256,
+        "campos": [
+            texto("texto", "Texto"),
+        ],
+    },
+    {
+        "seccion": "hash",
+        "codigo": "4.3",
+        "slug": "sha512",
+        "titulo": "SHA-512",
+        "descripcion": "Huella de 512 bits del texto.",
+        "funcion": hashes.hash_sha512,
+        "campos": [
+            texto("texto", "Texto"),
+        ],
+    },
+
+    # ---------------------- 5. CODIFICACIÓN ----------------------
+    {
+        "seccion": "codificacion",
+        "codigo": "5.1",
+        "slug": "ascii",
+        "titulo": "ASCII",
+        "descripcion": "Convierte cada carácter en su código decimal.",
+        "funcion": codificacion.ascii_procesar,
+        "campos": [
+            elegir("modo", "Operación", CONVERTIR),
+            texto("entrada", "Texto, o valores separados por espacios"),
+        ],
+    },
+    {
+        "seccion": "codificacion",
+        "codigo": "5.2",
+        "slug": "hexadecimal",
+        "titulo": "Hexadecimal",
+        "descripcion": "Convierte el texto UTF-8 a hexadecimal.",
+        "funcion": codificacion.hexadecimal_procesar,
+        "campos": [
+            elegir("modo", "Operación", CONVERTIR),
+            texto("entrada", "Texto, o cadena hexadecimal"),
+        ],
+    },
+    {
+        "seccion": "codificacion",
+        "codigo": "5.3",
+        "slug": "binario",
+        "titulo": "Binario",
+        "descripcion": "Convierte cada byte a 8 bits.",
+        "funcion": codificacion.binario_procesar,
+        "campos": [
+            elegir("modo", "Operación", CONVERTIR),
+            texto("entrada", "Texto, o bytes separados por espacios"),
+        ],
+    },
+    {
+        "seccion": "codificacion",
+        "codigo": "5.4",
+        "slug": "base64",
+        "titulo": "Base64",
+        "descripcion": "Codificación Base64 en base 64.",
+        "funcion": codificacion.base64_procesar,
+        "campos": [
+            elegir("modo", "Operación", CONVERTIR),
+            texto("entrada", "Texto, o texto en Base64"),
+        ],
+    },
+
+    # -------------------------- 6. SALT ---------------------------
+    {
+        "seccion": "salt",
+        "codigo": "6.1",
+        "slug": "md5",
+        "titulo": "Hash MD5 con SALT",
+        "descripcion": "La misma clave con varios SALT distintos.",
+        "funcion": salt.hash_con_salt,
+        "campos": [
+            texto("clave", "Clave"),
+            numero("cantidad", "Cuántos SALT generar", "min='1'"),
+        ],
+        "ensamblar": lambda v: {
+            "clave": v["clave"],
+            "algoritmo": "md5",
+            "cantidad": v["cantidad"],
+        },
+    },
+    {
+        "seccion": "salt",
+        "codigo": "6.2",
+        "slug": "sha256",
+        "titulo": "Hash SHA-256 con SALT",
+        "descripcion": "La misma clave con varios SALT distintos.",
+        "funcion": salt.hash_con_salt,
+        "campos": [
+            texto("clave", "Clave"),
+            numero("cantidad", "Cuántos SALT generar", "min='1'"),
+        ],
+        "ensamblar": lambda v: {
+            "clave": v["clave"],
+            "algoritmo": "sha256",
+            "cantidad": v["cantidad"],
+        },
+    },
+    {
+        "seccion": "salt",
+        "codigo": "6.3",
+        "slug": "sha512",
+        "titulo": "Hash SHA-512 con SALT",
+        "descripcion": "La misma clave con varios SALT distintos.",
+        "funcion": salt.hash_con_salt,
+        "campos": [
+            texto("clave", "Clave"),
+            numero("cantidad", "Cuántos SALT generar", "min='1'"),
+        ],
+        "ensamblar": lambda v: {
+            "clave": v["clave"],
+            "algoritmo": "sha512",
+            "cantidad": v["cantidad"],
+        },
+    },
+]
+
+
+# ============================================================
+# FÓRMULA DE CADA HERRAMIENTA
+# ============================================================
+
+FORMULAS = {
+    "1.1": "a mod n = b",
+    "1.2": "(a + a-inverso) mod n = 0",
+    "1.3": "a XOR b = c  ·  c XOR b = a",
+    "1.4": "MCD(a, n) = 1  =>  existe a-inverso",
+    "1.5": "a · x ≡ 1 (mod n)",
+    "1.6": "r(i-1) = q(i) · r(i) + r(i+1)",
+    "2.1": "c = (p + k) mod 27",
+    "2.2": "c = (p + k) mod 26",
+    "2.3": "c(i) = p(i) XOR k(i)",
+    "2.4": "c = 25 - p",
+    "2.5": "c = lectura por columnas de la matriz",
+    "2.6": "c = (a · p + b) mod 26",
+    "2.7": "c = clave[posicion de la letra]",
+    "3.1": "A = g^a mod p  ·  B = g^b mod p  ·  k = B^a = A^b",
+    "3.2": "c = m^e mod n  ·  m = c^d mod n",
+    "3.3": "base^exponente mod modulo  (cuadrado binario)",
+    "4.1": "MD5(texto) = 128 bits",
+    "4.2": "SHA-256(texto) = 256 bits",
+    "4.3": "SHA-512(texto) = 512 bits",
+    "5.1": "codigo = ord(caracter)",
+    "5.2": "texto -> bytes UTF-8 -> hexadecimal",
+    "5.3": "byte = 8 bits",
+    "5.4": "3 bytes -> 4 caracteres Base64",
+    "6.1": "hash = HASH(SALT + clave)",
+    "6.2": "hash = HASH(SALT + clave)",
+    "6.3": "hash = HASH(SALT + clave)",
+}
+
+for herramienta in HERRAMIENTAS:
+    herramienta["formula"] = FORMULAS[herramienta["codigo"]]
+
+
+# ============================================================
+# BÚSQUEDAS SOBRE EL REGISTRO
+# ============================================================
+
+def buscar_seccion(clave: str) -> dict:
+    for seccion in SECCIONES:
+        if seccion["clave"] == clave:
+            return seccion
+
+    raise HTTPException(status_code=404, detail="Sección no encontrada.")
+
+
+def buscar_herramienta(clave_seccion: str, slug: str) -> dict:
+    for herramienta in HERRAMIENTAS:
+        if (
+            herramienta["seccion"] == clave_seccion
+            and herramienta["slug"] == slug
+        ):
+            return herramienta
+
+    raise HTTPException(
+        status_code=404,
+        detail="Herramienta no encontrada.",
     )
 
 
-@app.post("/modular/mcd",
-          response_class=HTMLResponse)
-def calcular_mcd(
-    a: int = Form(...),
-    n: int = Form(...)
-):
+def leer_valores(herramienta: dict, form) -> dict:
+    """Convierte el formulario recibido en los argumentos de app/."""
+    valores = {}
 
-    import math
+    for campo in herramienta["campos"]:
+        crudo = str(form.get(campo["name"], "")).strip()
 
-    if n <= 0:
-
-        resultado = """
-        <div class="error">
-            El módulo n debe ser mayor que 0.
-        </div>
-        """
-
-    else:
-
-        mcd = math.gcd(a, n)
-
-        if mcd == 1:
-
-            inverso = pow(a, -1, n)
-
-            resultado = f"""
-            <div class="result">
-
-                <h2>Resultado</h2>
-
-                <div class="formula">
-                    MCD({a}, {n}) = 1
-                </div>
-
-                <p class="success">
-                    ✓ Existe inverso multiplicativo.
-                </p>
-
-                <div class="formula">
-                    Inverso = {inverso}
-                </div>
-
-            </div>
-            """
-
+        if campo["type"] == "number":
+            try:
+                valores[campo["name"]] = int(crudo)
+            except ValueError:
+                raise ValueError(
+                    f"Error: «{campo['label']}» debe ser un número "
+                    f"entero."
+                )
         else:
+            valores[campo["name"]] = crudo
 
-            resultado = f"""
-            <div class="result">
+    ensamblar = herramienta.get("ensamblar")
 
-                <h2>Resultado</h2>
+    if ensamblar is not None:
+        return ensamblar(valores)
 
-                <div class="formula">
-                    MCD({a}, {n}) = {mcd}
-                </div>
-
-                <p class="danger">
-                    ✗ No existe inverso multiplicativo
-                    porque el MCD no es 1.
-                </p>
-
-            </div>
-            """
-
-    return pagina_resultado(
-        "1.4 MCD",
-        resultado
-    )
+    return valores
 
 
 # ============================================================
-# 1.5 INVERSO MULTIPLICATIVO TRADICIONAL
+# FILTRO DE LAS PLANTILLAS
 # ============================================================
 
-@app.get("/modular/inverso-tradicional",
-         response_class=HTMLResponse)
-def pagina_inverso_tradicional():
+def prettificar(clave: str) -> str:
+    """Convierte una clave de diccionario en etiqueta legible."""
+    texto = clave.replace("_", " ").strip()
 
-    return formulario_base(
-        "1.5 Inverso multiplicativo tradicional",
-        "Busca un número x tal que (a × x) mod n = 1.",
-        [
-            {
-                "name": "a",
-                "label": "Número a"
-            },
-            {
-                "name": "n",
-                "label": "Módulo n",
-                "extra": "min='2'"
-            }
-        ],
-        "/modular/inverso-tradicional"
-    )
+    if not texto:
+        return clave
 
+    return texto[0].upper() + texto[1:]
 
-@app.post("/modular/inverso-tradicional",
-          response_class=HTMLResponse)
-def calcular_inverso_tradicional(
-    a: int = Form(...),
-    n: int = Form(...)
-):
 
-    if n < 2:
-
-        resultado = """
-        <div class="error">
-            El módulo n debe ser mayor o igual a 2.
-        </div>
-        """
-
-    else:
-
-        inverso = None
-        intentos = []
-
-        for x in range(1, n):
-
-            valor = (a * x) % n
-
-            intentos.append(
-                f"{a} × {x} mod {n} = {valor}"
-            )
-
-            if valor == 1:
-                inverso = x
-                break
-
-        if inverso is not None:
-
-            filas = ""
-
-            for intento in intentos:
-                filas += f"""
-                <tr>
-                    <td>{intento}</td>
-                </tr>
-                """
-
-            resultado = f"""
-            <div class="result">
-
-                <h2>Resultado</h2>
-
-                <p>
-                    Se encontró el valor:
-                </p>
-
-                <div class="formula">
-                    x = {inverso}
-                </div>
-
-                <p class="success">
-                    ✓ {a} × {inverso} mod {n} = 1
-                </p>
-
-                <h3>Proceso</h3>
-
-                <div class="table-container">
-
-                    <table>
-
-                        <tr>
-                            <th>Intento</th>
-                        </tr>
-
-                        {filas}
-
-                    </table>
-
-                </div>
-
-            </div>
-            """
-
-        else:
-
-            resultado = f"""
-            <div class="error">
-
-                <h2>No existe inverso</h2>
-
-                <p>
-                    No se encontró ningún x entre 1 y {n - 1}
-                    que cumpla:
-                </p>
-
-                <div class="formula">
-                    ({a} × x) mod {n} = 1
-                </div>
-
-            </div>
-            """
-
-    return pagina_resultado(
-        "1.5 Inverso tradicional",
-        resultado
-    )
-
-
-# ============================================================
-# 1.6 ALGORITMO EXTENDIDO DE EUCLIDES
-# ============================================================
-
-@app.get("/modular/aee",
-         response_class=HTMLResponse)
-def pagina_aee():
-
-    return formulario_base(
-        "1.6 Algoritmo Extendido de Euclides",
-        "Calcula el inverso multiplicativo mediante AEE y muestra la tabla de rondas.",
-        [
-            {
-                "name": "a",
-                "label": "Número a"
-            },
-            {
-                "name": "n",
-                "label": "Módulo n",
-                "extra": "min='2'"
-            }
-        ],
-        "/modular/aee"
-    )
-
-
-@app.post("/modular/aee",
-          response_class=HTMLResponse)
-def calcular_aee(
-    a: int = Form(...),
-    n: int = Form(...)
-):
-
-    if n < 2:
-
-        resultado = """
-        <div class="error">
-            El módulo n debe ser mayor o igual a 2.
-        </div>
-        """
-
-        return pagina_resultado(
-            "1.6 AEE",
-            resultado
-        )
-
-    original_a = a
-    original_n = n
-
-    # Para el cálculo del inverso se trabaja
-    # con valores positivos.
-    a_actual = a
-    n_actual = n
-
-    # Algoritmo de Euclides
-    r0 = a_actual
-    r1 = n_actual
-
-    # Coeficientes de Bézout
-    t0 = 1
-    t1 = 0
-
-    tabla = []
-    ronda = 0
-
-    while r1 != 0:
-
-        cociente = r0 // r1
-        resto = r0 % r1
-
-        tabla.append({
-            "ronda": ronda + 1,
-            "r0": r0,
-            "r1": r1,
-            "q": cociente,
-            "r": resto,
-            "t0": t0,
-            "t1": t1
-        })
-
-        nuevo_t = t0 - cociente * t1
-
-        r0 = r1
-        r1 = resto
-
-        t0 = t1
-        t1 = nuevo_t
-
-        ronda += 1
-
-    mcd = abs(r0)
-
-    if mcd != 1:
-
-        filas = ""
-
-        for fila in tabla:
-
-            filas += f"""
-            <tr>
-                <td>{fila['ronda']}</td>
-                <td>{fila['r0']}</td>
-                <td>{fila['r1']}</td>
-                <td>{fila['q']}</td>
-                <td>{fila['r']}</td>
-            </tr>
-            """
-
-        resultado = f"""
-        <div class="result">
-
-            <h2>Resultado</h2>
-
-            <div class="formula">
-                MCD({original_a}, {original_n}) = {mcd}
-            </div>
-
-            <p class="danger">
-                ✗ No existe inverso multiplicativo
-                porque el MCD no es 1.
-            </p>
-
-            <h3>Tabla de rondas</h3>
-
-            <div class="table-container">
-
-                <table>
-
-                    <tr>
-                        <th>Ronda</th>
-                        <th>r₀</th>
-                        <th>r₁</th>
-                        <th>q</th>
-                        <th>r</th>
-                    </tr>
-
-                    {filas}
-
-                </table>
-
-            </div>
-
-        </div>
-        """
-
-    else:
-
-        inverso = t0 % original_n
-
-        filas = ""
-
-        for fila in tabla:
-
-            filas += f"""
-            <tr>
-                <td>{fila['ronda']}</td>
-                <td>{fila['r0']}</td>
-                <td>{fila['r1']}</td>
-                <td>{fila['q']}</td>
-                <td>{fila['r']}</td>
-            </tr>
-            """
-
-        resultado = f"""
-        <div class="result">
-
-            <h2>Resultado</h2>
-
-            <div class="formula">
-                MCD({original_a}, {original_n}) = 1
-            </div>
-
-            <p class="success">
-                ✓ Existe inverso multiplicativo.
-            </p>
-
-            <div class="formula">
-                Inverso de {original_a}
-                módulo {original_n}
-                = {inverso}
-            </div>
-
-            <p>
-                Rondas realizadas:
-                <strong>{len(tabla)}</strong>
-            </p>
-
-            <h3>Tabla del Algoritmo Extendido de Euclides</h3>
-
-            <div class="table-container">
-
-                <table>
-
-                    <tr>
-                        <th>Ronda</th>
-                        <th>r₀</th>
-                        <th>r₁</th>
-                        <th>q</th>
-                        <th>r</th>
-                    </tr>
-
-                    {filas}
-
-                </table>
-
-            </div>
-
-            <h3>Comprobación</h3>
-
-            <div class="formula">
-                ({original_a} × {inverso})
-                mod {original_n}
-                = {(original_a * inverso) % original_n}
-            </div>
-
-        </div>
-        """
-
-    return pagina_resultado(
-        "1.6 AEE",
-        resultado
-    )
-
-
-# ============================================================
-# PÁGINA DE RESULTADO
-# ============================================================
-
-def pagina_resultado(titulo, resultado):
-
-    return f"""
-    <!DOCTYPE html>
-
-    <html lang="es">
-
-    <head>
-
-        <meta charset="UTF-8">
-
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1.0">
-
-        <title>{titulo}</title>
-
-        {STYLE}
-
-    </head>
-
-    <body>
-
-        <div class="small-container">
-
-            <a href="/modular">
-                ← Volver a Matemática Modular
-            </a>
-
-            {resultado}
-
-            <div class="actions">
-
-                <a class="btn"
-                   href="/modular">
-                    Volver al menú
-                </a>
-
-            </div>
-
-        </div>
-
-    </body>
-
-    </html>
-    """
+plantillas.env.filters["prettificar"] = prettificar
 
 
 # ============================================================
@@ -1218,5 +621,112 @@ def health():
 
     return {
         "status": "ok",
-        "application": "Calculadora Criptográfica"
+        "application": "Calculadora Criptográfica",
+        "herramientas": len(HERRAMIENTAS),
     }
+
+
+# ============================================================
+# PÁGINA PRINCIPAL
+# ============================================================
+
+@app.get("/", response_class=HTMLResponse)
+def inicio(request: Request):
+
+    return plantillas.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "request": request,
+            "secciones": SECCIONES,
+            "total": len(HERRAMIENTAS),
+        },
+    )
+
+
+# ============================================================
+# MENÚ DE CADA SECCIÓN
+# ============================================================
+
+@app.get("/{seccion}", response_class=HTMLResponse)
+def menu(request: Request, seccion: str):
+
+    datos = buscar_seccion(seccion)
+
+    herramientas = [
+        herramienta
+        for herramienta in HERRAMIENTAS
+        if herramienta["seccion"] == seccion
+    ]
+
+    return plantillas.TemplateResponse(
+        request,
+        "menu.html",
+        {
+            "request": request,
+            "seccion": datos,
+            "herramientas": herramientas,
+        },
+    )
+
+
+# ============================================================
+# FORMULARIO DE CADA HERRAMIENTA
+# ============================================================
+
+@app.get("/{seccion}/{slug}", response_class=HTMLResponse)
+def formulario(request: Request, seccion: str, slug: str):
+
+    datos = buscar_seccion(seccion)
+    herramienta = buscar_herramienta(seccion, slug)
+
+    return plantillas.TemplateResponse(
+        request,
+        "formulario.html",
+        {
+            "request": request,
+            "seccion": datos,
+            "herramienta": herramienta,
+        },
+    )
+
+
+# ============================================================
+# EJECUCIÓN DE CADA HERRAMIENTA
+# ============================================================
+
+@app.post("/{seccion}/{slug}", response_class=HTMLResponse)
+async def ejecutar(request: Request, seccion: str, slug: str):
+
+    datos = buscar_seccion(seccion)
+    herramienta = buscar_herramienta(seccion, slug)
+
+    contexto = {
+        "request": request,
+        "seccion": datos,
+        "herramienta": herramienta,
+    }
+
+    try:
+        argumentos = leer_valores(herramienta, await request.form())
+        resultado = herramienta["funcion"](**argumentos)
+    except ValueError as error:
+        return plantillas.TemplateResponse(
+            request,
+            "resultado.html",
+            {
+                **contexto,
+                "error": mensaje_error(error),
+                "resultado": None,
+            },
+        )
+
+    return plantillas.TemplateResponse(
+        request,
+        "resultado.html",
+        {
+            **contexto,
+            "error": None,
+            "resultado": resultado,
+        },
+    )

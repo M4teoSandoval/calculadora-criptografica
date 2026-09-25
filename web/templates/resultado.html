@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ herramienta.codigo }} {{ herramienta.titulo }}{% endblock %}
+{% block ruta %} :: {{ seccion.clave }} :: salida{% endblock %}
+
+{% block contenido %}
+
+    <a class="volver" href="/{{ seccion.clave }}">
+        &larr; volver a {{ seccion.titulo }}
+    </a>
+
+    <header class="cabecera">
+
+        <div>
+            <h1 class="titulo">
+                <span class="codigo-grande">{{ herramienta.codigo }}</span>
+                {{ herramienta.titulo }}
+            </h1>
+
+            <p class="subtitulo">{{ herramienta.descripcion }}</p>
+        </div>
+
+    </header>
+
+    {% if error %}
+
+    <div class="panel error">
+        <h2>&gt; ERROR</h2>
+        <p class="mensaje-error">{{ error }}</p>
+    </div>
+
+    {% else %}
+
+    <div class="panel">
+
+        <h2>&gt; RESULTADO</h2>
+
+        <div class="datos">
+
+            {% for clave, valor in resultado.items() %}
+
+            {% if valor is none %}
+
+            <div class="fila">
+                <span class="etiqueta">
+                    {{ clave|prettificar }}
+                </span>
+                <span class="valor nulo">&mdash;</span>
+            </div>
+
+            {% elif valor is boolean %}
+
+            <div class="fila">
+                <span class="etiqueta">
+                    {{ clave|prettificar }}
+                </span>
+
+                {% if valor %}
+                <span class="valor si">&#10003; SI</span>
+                {% else %}
+                <span class="valor no">&#10007; NO</span>
+                {% endif %}
+            </div>
+
+            {% elif valor is sequence and valor is not string %}
+
+                {% if valor|length > 0 and valor[0] is mapping %}
+
+                <div class="bloque">
+                    <h3>{{ clave|prettificar }}</h3>
+
+                    <div class="tabla-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    {% for columna in valor[0].keys() %}
+                                    <th>{{ columna|prettificar }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for fila in valor %}
+                                <tr>
+                                    {% for celda in fila.values() %}
+                                    <td>{{ celda }}</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {% elif valor|length > 0
+                        and valor[0] is sequence
+                        and valor[0] is not string %}
+
+                <div class="bloque">
+                    <h3>{{ clave|prettificar }}</h3>
+
+                    <div class="matriz">
+                        {% for fila in valor %}
+                            {% for celda in fila %}
+                            <span>{{ celda }}</span>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+
+                {% else %}
+
+                <div class="bloque">
+                    <h3>{{ clave|prettificar }}</h3>
+                    <pre>{{ valor|join("  ") }}</pre>
+                </div>
+
+                {% endif %}
+
+            {% elif clave == "resultado" %}
+
+            <div class="bloque destacado">
+                <h3>{{ clave|prettificar }}</h3>
+                <pre id="salida">{{ valor }}</pre>
+                <button type="button"
+                        class="copiar"
+                        data-copia="salida">copiar</button>
+            </div>
+
+            {% else %}
+
+            <div class="fila">
+                <span class="etiqueta">
+                    {{ clave|prettificar }}
+                </span>
+                <span class="valor{% if valor|string|length > 40 %} largo{% endif %}">
+                    {{ valor }}
+                </span>
+            </div>
+
+            {% endif %}
+
+            {% endfor %}
+
+        </div>
+
+    </div>
+
+    {% endif %}
+
+    <div class="acciones">
+        <a class="boton" href="/{{ seccion.clave }}">
+            volver al menu
+        </a>
+
+        <a class="boton fantasma"
+           href="/{{ seccion.clave }}/{{ herramienta.slug }}">
+            calcular otra vez
+        </a>
+
+        <a class="boton fantasma" href="/">inicio</a>
+    </div>
+
+{% endblock %}

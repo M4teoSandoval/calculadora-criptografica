@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ seccion.numero }}. {{ seccion.titulo }}{% endblock %}
+{% block ruta %} :: {{ seccion.clave }}{% endblock %}
+
+{% block contenido %}
+
+    <a class="volver" href="/">&larr; volver al inicio</a>
+
+    <header class="cabecera">
+
+        <div>
+            <h1 class="titulo">
+                <span class="codigo-grande">
+                    {{ seccion.numero }}
+                </span>
+                {{ seccion.titulo }}
+            </h1>
+
+            <p class="subtitulo">{{ seccion.descripcion }}</p>
+        </div>
+
+    </header>
+
+    <div class="rejilla">
+
+        {% for herramienta in herramientas %}
+
+        <a class="tarjeta"
+           href="/{{ seccion.clave }}/{{ herramienta.slug }}">
+
+            <span class="codigo">{{ herramienta.codigo }}</span>
+
+            <h2>{{ herramienta.titulo }}</h2>
+
+            <p>{{ herramienta.descripcion }}</p>
+
+            <span class="formula">{{ herramienta.formula }}</span>
+
+            <span class="pie-tarjeta">
+                ejecutar <b>&rarr;</b>
+            </span>
+
+        </a>
+
+        {% endfor %}
+
+    </div>
+
+{% endblock %}

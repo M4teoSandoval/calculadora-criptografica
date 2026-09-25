@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ herramienta.codigo }} {{ herramienta.titulo }}{% endblock %}
+{% block ruta %} :: {{ seccion.clave }} :: {{ herramienta.slug }}{% endblock %}
+
+{% block contenido %}
+
+    <a class="volver" href="/{{ seccion.clave }}">
+        &larr; volver a {{ seccion.titulo }}
+    </a>
+
+    <header class="cabecera">
+
+        <div>
+            <h1 class="titulo">
+                <span class="codigo-grande">{{ herramienta.codigo }}</span>
+                {{ herramienta.titulo }}
+            </h1>
+
+            <p class="subtitulo">{{ herramienta.descripcion }}</p>
+
+            <p class="formula grande">{{ herramienta.formula }}</p>
+        </div>
+
+    </header>
+
+    <form class="panel"
+          method="post"
+          action="/{{ seccion.clave }}/{{ herramienta.slug }}">
+
+        {% for campo in herramienta.campos %}
+
+        <label for="{{ campo.name }}">
+            {{ campo.label }}
+        </label>
+
+        {% if campo.type == "select" %}
+
+        <select id="{{ campo.name }}" name="{{ campo.name }}">
+
+            {% for valor, rotulo in campo.options %}
+            <option value="{{ valor }}">{{ rotulo }}</option>
+            {% endfor %}
+
+        </select>
+
+        {% else %}
+
+        <input type="{{ campo.type }}"
+               id="{{ campo.name }}"
+               name="{{ campo.name }}"
+               autocomplete="off"
+               spellcheck="false"
+               {% if campo.extra %}{{ campo.extra|safe }}{% endif %}
+               required>
+
+        {% endif %}
+
+        {% endfor %}
+
+        <button type="submit">EJECUTAR</button>
+
+    </form>
+
+{% endblock %}

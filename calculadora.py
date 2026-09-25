@@ -1,9 +1,5 @@
 
-import math
-import hashlib
-import base64
-import secrets
-import string
+import app
 
 
 # ============================================================
@@ -14,8 +10,13 @@ def pausar():
     input("\nPresione ENTER para continuar...")
 
 
-def limpiar_texto(texto):
-    return texto.upper()
+def leer_entero(mensaje):
+    """Pide un entero. Si el usuario escribe otra cosa devuelve None."""
+    try:
+        return int(input(mensaje))
+    except ValueError:
+        print("Error: debe ingresar números enteros.")
+        return None
 
 
 # ============================================================
@@ -25,219 +26,188 @@ def limpiar_texto(texto):
 def calcular_modulo():
     print("\n--- 1.1 CALCULAR MÓDULO ---")
 
+    a = leer_entero("Ingrese el valor de a: ")
+    n = leer_entero("Ingrese el valor de n: ")
+
+    if a is None or n is None:
+        return
+
     try:
-        a = int(input("Ingrese el valor de a: "))
-        n = int(input("Ingrese el valor de n: "))
+        resultado = app.calcular_modulo(a, n)
+    except ValueError as error:
+        print(app.mensaje_error(error))
+        return
 
-        if n == 0:
-            print("Error: el módulo n no puede ser 0.")
-            return
-
-        resultado = a % n
-
-        print(f"\n{a} mod {n} = {resultado}")
-
-    except ValueError:
-        print("Error: debe ingresar números enteros.")
+    print(f"\n{a} mod {n} = {resultado['resultado']}")
 
 
 def inverso_aditivo():
     print("\n--- 1.2 INVERSO ADITIVO ---")
 
+    a = leer_entero("Ingrese el valor de a: ")
+    n = leer_entero("Ingrese el módulo n: ")
+
+    if a is None or n is None:
+        return
+
     try:
-        a = int(input("Ingrese el valor de a: "))
-        n = int(input("Ingrese el módulo n: "))
+        resultado = app.inverso_aditivo(a, n)
+    except ValueError as error:
+        print(app.mensaje_error(error))
+        return
 
-        if n <= 0:
-            print("Error: el módulo debe ser mayor que 0.")
-            return
-
-        resultado = (-a) % n
-
-        print(f"\nEl inverso aditivo de {a} módulo {n} es: {resultado}")
-        print(
-            f"Comprobación: ({a} + {resultado}) mod {n} = "
-            f"{(a + resultado) % n}"
-        )
-
-    except ValueError:
-        print("Error: debe ingresar números enteros.")
+    print(
+        f"\nEl inverso aditivo de {a} módulo {n} es: "
+        f"{resultado['inverso']}"
+    )
+    print(
+        f"Comprobación: ({a} + {resultado['inverso']}) mod {n} = "
+        f"{resultado['comprobacion']}"
+    )
 
 
 def inverso_xor():
     print("\n--- 1.3 INVERSO DE XOR ---")
 
-    try:
-        a = int(input("Ingrese el primer número: "))
-        b = int(input("Ingrese el segundo número: "))
+    a = leer_entero("Ingrese el primer número: ")
+    b = leer_entero("Ingrese el segundo número: ")
 
-        resultado = a ^ b
+    if a is None or b is None:
+        return
 
-        print(f"\n{a} XOR {b} = {resultado}")
+    resultado = app.inverso_xor(a, b)
 
-        comprobacion = resultado ^ b
-
-        print(f"Comprobación: {resultado} XOR {b} = {comprobacion}")
-
-    except ValueError:
-        print("Error: debe ingresar números enteros.")
+    print(f"\n{a} XOR {b} = {resultado['resultado']}")
+    print(
+        f"Comprobación: {resultado['resultado']} XOR {b} = "
+        f"{resultado['recuperado']}"
+    )
 
 
 def calcular_mcd():
     print("\n--- 1.4 MCD E INVERSO MULTIPLICATIVO ---")
 
+    a = leer_entero("Ingrese el valor de a: ")
+    n = leer_entero("Ingrese el módulo n: ")
+
+    if a is None or n is None:
+        return
+
     try:
-        a = int(input("Ingrese el valor de a: "))
-        n = int(input("Ingrese el módulo n: "))
+        resultado = app.calcular_mcd(a, n)
+    except ValueError as error:
+        print(app.mensaje_error(error))
+        return
 
-        if n <= 0:
-            print("Error: el módulo debe ser mayor que 0.")
-            return
+    print(f"\nMCD({a}, {n}) = {resultado['mcd']}")
 
-        mcd = math.gcd(a, n)
+    if not resultado["existe_inverso"]:
+        print("No existe inverso multiplicativo.")
+        print("La razón es que MCD(a, n) ≠ 1.")
+        return
 
-        print(f"\nMCD({a}, {n}) = {mcd}")
-
-        if mcd == 1:
-            print("Sí existe inverso multiplicativo.")
-
-            inverso = pow(a, -1, n)
-
-            print(f"Inverso multiplicativo = {inverso}")
-            print(
-                f"Comprobación: ({a} × {inverso}) mod {n} = "
-                f"{(a * inverso) % n}"
-            )
-        else:
-            print("No existe inverso multiplicativo.")
-            print("La razón es que MCD(a, n) ≠ 1.")
-
-    except ValueError:
-        print("Error: debe ingresar números enteros.")
+    print("Sí existe inverso multiplicativo.")
+    print(f"Inverso multiplicativo = {resultado['inverso']}")
+    print(
+        f"Comprobación: ({a} × {resultado['inverso']}) mod {n} = "
+        f"{resultado['comprobacion']}"
+    )
 
 
 def inverso_multiplicativo_tradicional():
     print("\n--- 1.5 INVERSO MULTIPLICATIVO - MÉTODO TRADICIONAL ---")
 
+    a = leer_entero("Ingrese el valor de a: ")
+    n = leer_entero("Ingrese el módulo n: ")
+
+    if a is None or n is None:
+        return
+
     try:
-        a = int(input("Ingrese el valor de a: "))
-        n = int(input("Ingrese el módulo n: "))
+        resultado = app.inverso_multiplicativo_tradicional(a, n)
+    except ValueError as error:
+        print(app.mensaje_error(error))
+        return
 
-        if n <= 0:
-            print("Error: el módulo debe ser mayor que 0.")
-            return
+    if resultado["mcd"] != 1:
+        print(f"\nMCD({a}, {n}) = {resultado['mcd']}")
+        print("No existe inverso multiplicativo.")
+        return
 
-        mcd = math.gcd(a, n)
+    print("\nBuscando x tal que:")
+    print(f"{a} × x ≡ 1 (mod {n})")
+    print("\nProcedimiento:")
 
-        if mcd != 1:
-            print(f"\nMCD({a}, {n}) = {mcd}")
-            print("No existe inverso multiplicativo.")
-            return
+    for intento in resultado["intentos"]:
+        print(
+            f"{a} × {intento['x']} mod {n} = {intento['valor']}"
+        )
 
-        print("\nBuscando x tal que:")
-        print(f"{a} × x ≡ 1 (mod {n})")
-        print("\nProcedimiento:")
+    if not resultado["existe_inverso"]:
+        print(
+            f"\nNo se encontró ningún valor entre 1 y {n - 1} "
+            f"que cumpla ({a} × x) mod {n} = 1."
+        )
+        return
 
-        for x in range(1, n):
-            resultado = (a * x) % n
-
-            print(f"{a} × {x} mod {n} = {resultado}")
-
-            if resultado == 1:
-                print(f"\nInverso multiplicativo = {x}")
-                print(
-                    f"Comprobación: ({a} × {x}) mod {n} = "
-                    f"{(a * x) % n}"
-                )
-                return
-
-    except ValueError:
-        print("Error: debe ingresar números enteros.")
+    print(f"\nInverso multiplicativo = {resultado['inverso']}")
+    print(
+        f"Comprobación: ({a} × {resultado['inverso']}) mod {n} = "
+        f"{(a * resultado['inverso']) % n}"
+    )
 
 
 def inverso_multiplicativo_aee():
     print("\n--- 1.6 INVERSO MULTIPLICATIVO - AEE ---")
 
+    a = leer_entero("Ingrese el valor de a: ")
+    n = leer_entero("Ingrese el módulo n: ")
+
+    if a is None or n is None:
+        return
+
     try:
-        a = int(input("Ingrese el valor de a: "))
-        n = int(input("Ingrese el módulo n: "))
+        resultado = app.inverso_multiplicativo_aee(a, n)
+    except ValueError as error:
+        print(app.mensaje_error(error))
+        return
 
-        if n <= 0:
-            print("Error: el módulo debe ser mayor que 0.")
-            return
+    print(f"\nMCD({a}, {n}) = {resultado['mcd']}")
 
-        # Guardamos los valores originales
-        a_original = a
-        n_original = n
+    if not resultado["existe_inverso"]:
+        print("No existe inverso multiplicativo.")
+        return
 
-        # Para trabajar correctamente
-        if a < 0:
-            a = a % n
+    print(f"Rondas del algoritmo: {resultado['rondas']}")
 
-        # Variables para el algoritmo extendido
-        r0 = n
-        r1 = a
+    print("\nTABLA DEL ALGORITMO EXTENDIDO DE EUCLIDES")
+    print("-" * 75)
+    print(
+        f"{'Ronda':<8}"
+        f"{'r anterior':<15}"
+        f"{'r actual':<15}"
+        f"{'Cociente':<12}"
+        f"{'Residuo':<12}"
+    )
+    print("-" * 75)
 
-        t0 = 0
-        t1 = 1
-
-        tabla = []
-
-        while r1 != 0:
-            cociente = r0 // r1
-            residuo = r0 % r1
-
-            tabla.append((r0, r1, cociente, residuo, t0, t1))
-
-            r0, r1 = r1, residuo
-            t0, t1 = t1, t0 - cociente * t1
-
-        mcd = r0
-
-        print(f"\nMCD({a_original}, {n_original}) = {mcd}")
-
-        if mcd != 1:
-            print("No existe inverso multiplicativo.")
-            return
-
-        inverso = t0 % n_original
-
-        print(f"Rondas del algoritmo: {len(tabla)}")
-
-        print("\nTABLA DEL ALGORITMO EXTENDIDO DE EUCLIDES")
-        print("-" * 75)
+    for fila in resultado["tabla"]:
         print(
-            f"{'Ronda':<8}"
-            f"{'r anterior':<15}"
-            f"{'r actual':<15}"
-            f"{'Cociente':<12}"
-            f"{'Residuo':<12}"
-        )
-        print("-" * 75)
-
-        for i, fila in enumerate(tabla, start=1):
-            r_anterior, r_actual, cociente, residuo, _, _ = fila
-
-            print(
-                f"{i:<8}"
-                f"{r_anterior:<15}"
-                f"{r_actual:<15}"
-                f"{cociente:<12}"
-                f"{residuo:<12}"
-            )
-
-        print("-" * 75)
-
-        print(f"\nInverso multiplicativo = {inverso}")
-
-        print(
-            f"Comprobación: ({a_original} × {inverso}) mod "
-            f"{n_original} = "
-            f"{(a_original * inverso) % n_original}"
+            f"{fila['ronda']:<8}"
+            f"{fila['r_anterior']:<15}"
+            f"{fila['r_actual']:<15}"
+            f"{fila['cociente']:<12}"
+            f"{fila['residuo']:<12}"
         )
 
-    except ValueError:
-        print("Error: debe ingresar números enteros.")
+    print("-" * 75)
+
+    print(f"\nInverso multiplicativo = {resultado['inverso']}")
+
+    print(
+        f"Comprobación: ({a} × {resultado['inverso']}) mod {n} = "
+        f"{resultado['comprobacion']}"
+    )
 
 
 # ============================================================
@@ -250,21 +220,10 @@ def modulo_27():
     texto = input("Ingrese el texto: ")
     desplazamiento = int(input("Ingrese el desplazamiento: "))
 
-    # Alfabeto de 27 símbolos: espacio + A-Z
-    alfabeto = " ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    resultado = app.modulo_27(texto, desplazamiento)
 
-    resultado = ""
-
-    for caracter in texto.upper():
-        if caracter in alfabeto:
-            posicion = alfabeto.index(caracter)
-            nueva_posicion = (posicion + desplazamiento) % 27
-            resultado += alfabeto[nueva_posicion]
-        else:
-            resultado += caracter
-
-    print(f"\nTexto original: {texto}")
-    print(f"Texto cifrado:  {resultado}")
+    print(f"\nTexto original: {resultado['texto']}")
+    print(f"Texto cifrado:  {resultado['resultado']}")
 
 
 def cesar():
@@ -272,58 +231,28 @@ def cesar():
 
     texto = input("Ingrese el texto: ")
     desplazamiento = int(input("Ingrese el desplazamiento: "))
-
     opcion = input("¿Desea cifrar o descifrar? (C/D): ").upper()
 
-    if opcion == "D":
-        desplazamiento = -desplazamiento
+    resultado = app.cesar(texto, desplazamiento, opcion == "D")
 
-    resultado = ""
-
-    for caracter in texto:
-        if caracter.isalpha():
-            inicio = ord("A") if caracter.isupper() else ord("a")
-
-            nueva_letra = chr(
-                (ord(caracter) - inicio + desplazamiento) % 26 + inicio
-            )
-
-            resultado += nueva_letra
-        else:
-            resultado += caracter
-
-    print(f"\nResultado: {resultado}")
+    print(f"\nResultado: {resultado['resultado']}")
 
 
 def vernam():
     print("\n--- 2.3 CIFRADO VERNAM ---")
 
-    texto = input("Ingrese el texto: ").upper()
-    clave = input("Ingrese la clave: ").upper()
+    texto = input("Ingrese el texto: ")
+    clave = input("Ingrese la clave: ")
 
-    if len(texto) != len(clave):
-        print("Error: el texto y la clave deben tener la misma longitud.")
+    try:
+        resultado = app.vernam(texto, clave)
+    except ValueError as error:
+        print(app.mensaje_error(error))
         return
 
-    resultado = ""
-
-    for t, k in zip(texto, clave):
-        if t.isalpha() and k.isalpha():
-            valor_t = ord(t) - ord("A")
-            valor_k = ord(k) - ord("A")
-
-            valor_resultado = valor_t ^ valor_k
-
-            # Se mantiene dentro de A-Z para mostrar el resultado
-            valor_resultado %= 26
-
-            resultado += chr(valor_resultado + ord("A"))
-        else:
-            resultado += t
-
-    print(f"\nTexto:  {texto}")
-    print(f"Clave:  {clave}")
-    print(f"Resultado: {resultado}")
+    print(f"\nTexto:  {resultado['texto']}")
+    print(f"Clave:  {resultado['clave']}")
+    print(f"Resultado: {resultado['resultado']}")
 
 
 def atbash():
@@ -331,53 +260,29 @@ def atbash():
 
     texto = input("Ingrese el texto: ")
 
-    resultado = ""
+    resultado = app.atbash(texto)
 
-    for caracter in texto:
-        if caracter.isupper():
-            resultado += chr(ord("Z") - (ord(caracter) - ord("A")))
-        elif caracter.islower():
-            resultado += chr(ord("z") - (ord(caracter) - ord("a")))
-        else:
-            resultado += caracter
-
-    print(f"\nResultado: {resultado}")
+    print(f"\nResultado: {resultado['resultado']}")
 
 
 def transposicion_columnar():
     print("\n--- 2.5 TRANSPOSICIÓN COLUMNAR SIMPLE ---")
 
-    texto = input("Ingrese el texto: ").replace(" ", "")
+    texto = input("Ingrese el texto: ")
     columnas = int(input("Ingrese el número de columnas: "))
 
-    if columnas <= 0:
-        print("Error: el número de columnas debe ser mayor que 0.")
+    try:
+        resultado = app.transposicion_columnar(texto, columnas)
+    except ValueError as error:
+        print(app.mensaje_error(error))
         return
-
-    # Completar con X para formar la matriz
-    while len(texto) % columnas != 0:
-        texto += "X"
-
-    filas = len(texto) // columnas
-
-    matriz = []
-
-    for i in range(filas):
-        fila = list(texto[i * columnas:(i + 1) * columnas])
-        matriz.append(fila)
 
     print("\nMatriz:")
 
-    for fila in matriz:
+    for fila in resultado["matriz"]:
         print(" ".join(fila))
 
-    resultado = ""
-
-    for columna in range(columnas):
-        for fila in range(filas):
-            resultado += matriz[fila][columna]
-
-    print(f"\nTexto cifrado: {resultado}")
+    print(f"\nTexto cifrado: {resultado['resultado']}")
 
 
 def afin():
@@ -386,98 +291,33 @@ def afin():
     texto = input("Ingrese el texto: ")
     a = int(input("Ingrese el valor de a: "))
     b = int(input("Ingrese el valor de b: "))
-
-    if math.gcd(a, 26) != 1:
-        print("Error: 'a' debe ser coprimo con 26.")
-        print("Valores posibles: 1, 3, 5, 7, 9, 11, 15, 17, 19, 21, 23 y 25.")
-        return
-
     opcion = input("¿Desea cifrar o descifrar? (C/D): ").upper()
 
-    resultado = ""
-
-    if opcion == "C":
-        for caracter in texto.upper():
-            if caracter.isalpha():
-                x = ord(caracter) - ord("A")
-                y = (a * x + b) % 26
-                resultado += chr(y + ord("A"))
-            else:
-                resultado += caracter
-
-    elif opcion == "D":
-        inverso_a = pow(a, -1, 26)
-
-        for caracter in texto.upper():
-            if caracter.isalpha():
-                y = ord(caracter) - ord("A")
-                x = (inverso_a * (y - b)) % 26
-                resultado += chr(x + ord("A"))
-            else:
-                resultado += caracter
-    else:
-        print("Opción no válida.")
+    try:
+        resultado = app.afin(texto, a, b, opcion)
+    except ValueError as error:
+        print(app.mensaje_error(error))
         return
 
-    print(f"\nResultado: {resultado}")
+    print(f"\nResultado: {resultado['resultado']}")
 
 
 def sustitucion_simple():
     print("\n--- 2.7 CIFRA DE SUSTITUCIÓN SIMPLE ---")
 
-    alfabeto = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
     clave = input(
         "Ingrese el alfabeto de sustitución (26 letras): "
-    ).upper()
-
-    if len(clave) != 26:
-        print("Error: la clave debe tener exactamente 26 letras.")
-        return
-
-    if not clave.isalpha():
-        print("Error: la clave solo debe contener letras.")
-        return
-
-    if len(set(clave)) != 26:
-        print("Error: no puede haber letras repetidas.")
-        return
-
+    )
     texto = input("Ingrese el texto: ")
     opcion = input("¿Desea cifrar o descifrar? (C/D): ").upper()
 
-    resultado = ""
-
-    if opcion == "C":
-        for caracter in texto:
-            if caracter.upper() in alfabeto:
-                posicion = alfabeto.index(caracter.upper())
-                nueva_letra = clave[posicion]
-
-                if caracter.islower():
-                    nueva_letra = nueva_letra.lower()
-
-                resultado += nueva_letra
-            else:
-                resultado += caracter
-
-    elif opcion == "D":
-        for caracter in texto:
-            if caracter.upper() in clave:
-                posicion = clave.index(caracter.upper())
-                nueva_letra = alfabeto[posicion]
-
-                if caracter.islower():
-                    nueva_letra = nueva_letra.lower()
-
-                resultado += nueva_letra
-            else:
-                resultado += caracter
-    else:
-        print("Opción no válida.")
+    try:
+        resultado = app.sustitucion_simple(texto, clave, opcion)
+    except ValueError as error:
+        print(app.mensaje_error(error))
         return
 
-    print(f"\nResultado: {resultado}")
+    print(f"\nResultado: {resultado['resultado']}")
 
 
 # ============================================================
@@ -487,120 +327,96 @@ def sustitucion_simple():
 def diffie_hellman():
     print("\n--- 3.1 DIFFIE-HELLMAN ---")
 
-    try:
-        p = int(input("Ingrese un número primo p: "))
-        g = int(input("Ingrese la raíz primitiva g: "))
+    p = int(input("Ingrese un número primo p: "))
+    g = int(input("Ingrese la raíz primitiva g: "))
+    a = int(input("Ingrese la clave privada de Alice: "))
+    b = int(input("Ingrese la clave privada de Bob: "))
 
-        a = int(input("Ingrese la clave privada de Alice: "))
-        b = int(input("Ingrese la clave privada de Bob: "))
+    resultado = app.diffie_hellman(p, g, a, b)
 
-        A = pow(g, a, p)
-        B = pow(g, b, p)
+    print("\n--- RESULTADOS ---")
+    print(
+        f"Clave pública de Alice: {resultado['publica_alice']}"
+    )
+    print(f"Clave pública de Bob:   {resultado['publica_bob']}")
+    print(
+        f"Clave calculada por Alice: {resultado['clave_alice']}"
+    )
+    print(
+        f"Clave calculada por Bob:   {resultado['clave_bob']}"
+    )
 
-        clave_alice = pow(B, a, p)
-        clave_bob = pow(A, b, p)
-
-        print("\n--- RESULTADOS ---")
-        print(f"Clave pública de Alice: {A}")
-        print(f"Clave pública de Bob:   {B}")
-        print(f"Clave calculada por Alice: {clave_alice}")
-        print(f"Clave calculada por Bob:   {clave_bob}")
-
-        if clave_alice == clave_bob:
-            print("\nIntercambio exitoso.")
-            print(f"Clave compartida: {clave_alice}")
-
-    except ValueError:
-        print("Error: todos los valores deben ser números enteros.")
+    if resultado["coinciden"]:
+        print("\nIntercambio exitoso.")
+        print(f"Clave compartida: {resultado['clave_alice']}")
 
 
 def rsa():
     print("\n--- 3.2 RSA ---")
 
+    p = int(input("Ingrese el número primo p: "))
+    q = int(input("Ingrese el número primo q: "))
+
+    parametros = app.criptografia_moderna.rsa_parametros(p, q)
+    n = parametros["n"]
+    phi = parametros["phi"]
+
+    print(f"\nn = p × q = {n}")
+    print(f"φ(n) = {phi}")
+
+    e = int(input("Ingrese e: "))
+
     try:
-        p = int(input("Ingrese el número primo p: "))
-        q = int(input("Ingrese el número primo q: "))
+        claves = app.criptografia_moderna.rsa_clave_privada(p, q, e)
+    except ValueError as error:
+        print(app.mensaje_error(error))
+        return
 
-        n = p * q
-        phi = (p - 1) * (q - 1)
+    print(f"Clave pública: {claves['clave_publica']}")
+    print(f"Clave privada: {claves['clave_privada']}")
 
-        print(f"\nn = p × q = {n}")
-        print(f"φ(n) = {phi}")
+    mensaje = int(input(f"Ingrese el mensaje como número menor que {n}: "))
 
-        e = int(input("Ingrese e: "))
+    try:
+        resultado = app.rsa(p, q, e, mensaje)
+    except ValueError as error:
+        print(app.mensaje_error(error))
+        return
 
-        if math.gcd(e, phi) != 1:
-            print("Error: e debe ser coprimo con φ(n).")
-            return
-
-        d = pow(e, -1, phi)
-
-        print(f"Clave pública: (e={e}, n={n})")
-        print(f"Clave privada: (d={d}, n={n})")
-
-        mensaje = int(input(f"Ingrese el mensaje como número menor que {n}: "))
-
-        if mensaje < 0 or mensaje >= n:
-            print("Error: el mensaje debe estar entre 0 y n-1.")
-            return
-
-        cifrado = pow(mensaje, e, n)
-        descifrado = pow(cifrado, d, n)
-
-        print(f"\nMensaje original: {mensaje}")
-        print(f"Mensaje cifrado: {cifrado}")
-        print(f"Mensaje descifrado: {descifrado}")
-
-    except ValueError:
-        print("Error: todos los valores deben ser números enteros.")
+    print(f"\nMensaje original: {resultado['mensaje']}")
+    print(f"Mensaje cifrado: {resultado['cifrado']}")
+    print(f"Mensaje descifrado: {resultado['descifrado']}")
 
 
 def exponenciacion_rapida():
     print("\n--- 3.3 EXPONENCIACIÓN RÁPIDA ---")
 
+    base = int(input("Ingrese la base: "))
+    exponente = int(input("Ingrese el exponente: "))
+    modulo = int(input("Ingrese el módulo: "))
+
     try:
-        base = int(input("Ingrese la base: "))
-        exponente = int(input("Ingrese el exponente: "))
-        modulo = int(input("Ingrese el módulo: "))
+        resultado = app.exponenciacion_rapida(base, exponente, modulo)
+    except ValueError as error:
+        print(app.mensaje_error(error))
+        return
 
-        if exponente < 0:
-            print("Error: el exponente debe ser mayor o igual a 0.")
-            return
+    print("\nProcedimiento:")
+    print("-" * 60)
 
-        if modulo <= 0:
-            print("Error: el módulo debe ser mayor que 0.")
-            return
-
-        resultado = 1
-        base_actual = base % modulo
-        exponente_actual = exponente
-        ronda = 1
-
-        print("\nProcedimiento:")
-        print("-" * 60)
-
-        while exponente_actual > 0:
-            print(
-                f"Ronda {ronda}: "
-                f"resultado={resultado}, "
-                f"base={base_actual}, "
-                f"exponente={exponente_actual}"
-            )
-
-            if exponente_actual % 2 == 1:
-                resultado = (resultado * base_actual) % modulo
-
-            base_actual = (base_actual * base_actual) % modulo
-            exponente_actual //= 2
-            ronda += 1
-
-        print("-" * 60)
+    for ronda in resultado["rondas"]:
         print(
-            f"\nResultado: {base}^{exponente} mod {modulo} = {resultado}"
+            f"Ronda {ronda['ronda']}: "
+            f"resultado={ronda['resultado']}, "
+            f"base={ronda['base']}, "
+            f"exponente={ronda['exponente']}"
         )
 
-    except ValueError:
-        print("Error: debe ingresar números enteros.")
+    print("-" * 60)
+    print(
+        f"\nResultado: {resultado['base']}^{resultado['exponente']} "
+        f"mod {resultado['modulo']} = {resultado['resultado']}"
+    )
 
 
 # ============================================================
@@ -612,12 +428,10 @@ def hash_md5():
 
     texto = input("Ingrese el texto: ")
 
-    resultado = hashlib.md5(
-        texto.encode("utf-8")
-    ).hexdigest()
+    resultado = app.hash_md5(texto)
 
-    print(f"\nTexto: {texto}")
-    print(f"MD5:   {resultado}")
+    print(f"\nTexto: {resultado['texto']}")
+    print(f"MD5:   {resultado['hash']}")
 
 
 def hash_sha256():
@@ -625,12 +439,10 @@ def hash_sha256():
 
     texto = input("Ingrese el texto: ")
 
-    resultado = hashlib.sha256(
-        texto.encode("utf-8")
-    ).hexdigest()
+    resultado = app.hash_sha256(texto)
 
-    print(f"\nTexto:   {texto}")
-    print(f"SHA-256: {resultado}")
+    print(f"\nTexto:   {resultado['texto']}")
+    print(f"SHA-256: {resultado['hash']}")
 
 
 def hash_sha512():
@@ -638,12 +450,10 @@ def hash_sha512():
 
     texto = input("Ingrese el texto: ")
 
-    resultado = hashlib.sha512(
-        texto.encode("utf-8")
-    ).hexdigest()
+    resultado = app.hash_sha512(texto)
 
-    print(f"\nTexto:   {texto}")
-    print(f"SHA-512: {resultado}")
+    print(f"\nTexto:   {resultado['texto']}")
+    print(f"SHA-512: {resultado['hash']}")
 
 
 # ============================================================
@@ -657,30 +467,22 @@ def codificacion_ascii():
 
     if opcion == "C":
         texto = input("Ingrese el texto: ")
-
-        resultado = []
-
-        for caracter in texto:
-            resultado.append(str(ord(caracter)))
-
-        print(f"\nASCII: {' '.join(resultado)}")
+        resultado = app.ascii_codificar(texto)
 
     elif opcion == "D":
         valores = input(
             "Ingrese los valores ASCII separados por espacios: "
         )
-
-        try:
-            numeros = [int(x) for x in valores.split()]
-            resultado = "".join(chr(x) for x in numeros)
-
-            print(f"\nTexto: {resultado}")
-
-        except ValueError:
-            print("Error: valores ASCII inválidos.")
+        resultado = app.ascii_decodificar(valores)
 
     else:
-        print("Opción no válida.")
+        resultado = None
+
+    if resultado is None:
+        print(app.mensaje_error(ValueError("Opción no válida.")))
+        return
+
+    print(f"\n{resultado['etiqueta']}: {resultado['salida']}")
 
 
 def codificacion_hexadecimal():
@@ -690,24 +492,20 @@ def codificacion_hexadecimal():
 
     if opcion == "C":
         texto = input("Ingrese el texto: ")
-
-        resultado = texto.encode("utf-8").hex()
-
-        print(f"\nHexadecimal: {resultado}")
+        resultado = app.hexadecimal_codificar(texto)
 
     elif opcion == "D":
         hexadecimal = input("Ingrese el hexadecimal: ")
-
-        try:
-            resultado = bytes.fromhex(hexadecimal).decode("utf-8")
-
-            print(f"\nTexto: {resultado}")
-
-        except ValueError:
-            print("Error: hexadecimal inválido.")
+        resultado = app.hexadecimal_decodificar(hexadecimal)
 
     else:
-        print("Opción no válida.")
+        resultado = None
+
+    if resultado is None:
+        print(app.mensaje_error(ValueError("Opción no válida.")))
+        return
+
+    print(f"\n{resultado['etiqueta']}: {resultado['salida']}")
 
 
 def codificacion_binario():
@@ -717,33 +515,22 @@ def codificacion_binario():
 
     if opcion == "C":
         texto = input("Ingrese el texto: ")
-
-        resultado = " ".join(
-            format(byte, "08b")
-            for byte in texto.encode("utf-8")
-        )
-
-        print(f"\nBinario: {resultado}")
+        resultado = app.binario_codificar(texto)
 
     elif opcion == "D":
         binario = input(
             "Ingrese los valores binarios separados por espacios: "
         )
-
-        try:
-            valores = binario.split()
-
-            resultado = bytes(
-                int(valor, 2) for valor in valores
-            ).decode("utf-8")
-
-            print(f"\nTexto: {resultado}")
-
-        except ValueError:
-            print("Error: binario inválido.")
+        resultado = app.binario_decodificar(binario)
 
     else:
-        print("Opción no válida.")
+        resultado = None
+
+    if resultado is None:
+        print(app.mensaje_error(ValueError("Opción no válida.")))
+        return
+
+    print(f"\n{resultado['etiqueta']}: {resultado['salida']}")
 
 
 def codificacion_base64():
@@ -753,74 +540,45 @@ def codificacion_base64():
 
     if opcion == "C":
         texto = input("Ingrese el texto: ")
-
-        resultado = base64.b64encode(
-            texto.encode("utf-8")
-        ).decode("utf-8")
-
-        print(f"\nBase64: {resultado}")
+        resultado = app.base64_codificar(texto)
 
     elif opcion == "D":
         texto = input("Ingrese el texto Base64: ")
-
-        try:
-            resultado = base64.b64decode(
-                texto
-            ).decode("utf-8")
-
-            print(f"\nTexto: {resultado}")
-
-        except Exception:
-            print("Error: Base64 inválido.")
+        resultado = app.base64_decodificar(texto)
 
     else:
-        print("Opción no válida.")
+        resultado = None
+
+    if resultado is None:
+        print(app.mensaje_error(ValueError("Opción no válida.")))
+        return
+
+    print(f"\n{resultado['etiqueta']}: {resultado['salida']}")
 
 
 # ============================================================
 #                        6. SALT
 # ============================================================
 
-def generar_salt():
-    caracteres = string.ascii_letters + string.digits
-
-    return "".join(
-        secrets.choice(caracteres)
-        for _ in range(16)
-    )
-
-
 def hash_con_salt(algoritmo):
     print(f"\n--- HASH {algoritmo.upper()} CON SALT ---")
 
     clave = input("Ingrese la clave: ")
-
     cantidad = int(
         input("¿Cuántos SALT diferentes desea generar?: ")
     )
 
-    if cantidad <= 0:
-        print("Error: la cantidad debe ser mayor que 0.")
+    try:
+        resultado = app.hash_con_salt(clave, algoritmo, cantidad)
+    except ValueError as error:
+        print(app.mensaje_error(error))
         return
 
     print("\n" + "=" * 80)
 
-    for i in range(1, cantidad + 1):
-        salt = generar_salt()
-
-        datos = (salt + clave).encode("utf-8")
-
-        if algoritmo == "md5":
-            hash_resultado = hashlib.md5(datos).hexdigest()
-
-        elif algoritmo == "sha256":
-            hash_resultado = hashlib.sha256(datos).hexdigest()
-
-        elif algoritmo == "sha512":
-            hash_resultado = hashlib.sha512(datos).hexdigest()
-
-        print(f"\nSALT {i}: {salt}")
-        print(f"HASH:   {hash_resultado}")
+    for item in resultado["resultados"]:
+        print(f"\nSALT {item['numero']}: {item['salt']}")
+        print(f"HASH:   {item['hash']}")
 
     print("\n" + "=" * 80)
     print("Cada SALT genera un hash diferente para la misma clave.")
