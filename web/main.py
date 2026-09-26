@@ -281,12 +281,13 @@ HERRAMIENTAS = [
         "codigo": "2.5",
         "slug": "transposicion-columnar",
         "titulo": "Transposición columnar simple",
-        "descripcion": "Escribe el texto en una matriz y lee las "
-                       "columnas.",
+        "descripcion": "Usa una palabra clave: hay tantas columnas "
+                       "como letras tiene la clave y se leen en orden "
+                       "alfabético, no de izquierda a derecha.",
         "funcion": criptografia_clasica.transposicion_columnar,
         "campos": [
+            texto("clave", "Clave (palabra de al menos 2 letras)"),
             texto("texto", "Texto (los espacios se ignoran)"),
-            numero("columnas", "Número de columnas", "min='1'"),
         ],
     },
     {
@@ -521,7 +522,7 @@ FORMULAS = {
     "2.2": "c = (p + k) mod 26",
     "2.3": "c(i) = p(i) XOR k(i)",
     "2.4": "c = 25 - p",
-    "2.5": "c = lectura por columnas de la matriz",
+    "2.5": "c = columnas leidas en orden alfabetico de la clave",
     "2.6": "c = (a · p + b) mod 26",
     "2.7": "c = clave[posicion de la letra]",
     "3.1": "A = g^a mod p  ·  B = g^b mod p  ·  k = B^a = A^b",

@@ -269,18 +269,23 @@ def transposicion_columnar():
     print("\n--- 2.5 TRANSPOSICIÓN COLUMNAR SIMPLE ---")
 
     texto = input("Ingrese el texto: ")
-    columnas = int(input("Ingrese el número de columnas: "))
+    clave = input("Ingrese la clave (palabra): ")
 
     try:
-        resultado = app.transposicion_columnar(texto, columnas)
+        resultado = app.transposicion_columnar(texto, clave)
     except ValueError as error:
         print(app.mensaje_error(error))
         return
 
+    print(f"\nClave: {resultado['clave']}")
+    print(f"Número de columnas: {resultado['columnas']}")
+    print(f"Filas: {resultado['filas']}")
+    print(f"Orden de lectura: {'  '.join(resultado['orden_lectura'])}")
+
     print("\nMatriz:")
 
     for fila in resultado["matriz"]:
-        print(" ".join(fila))
+        print("  ".join(fila.values()))
 
     print(f"\nTexto cifrado: {resultado['resultado']}")
 

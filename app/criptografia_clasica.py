@@ -117,13 +117,30 @@ def atbash(texto: str) -> dict:
     }
 
 
-def transposicion_columnar(texto: str, columnas: int) -> dict:
-    """2.5 Transposicion columnar simple, rellenando con X."""
-    if columnas <= 0:
+def transposicion_columnar(texto: str, clave: str) -> dict:
+    """2.5 Transposicion columnar con clave.
+
+    El numero de columnas es la cantidad de letras de la clave y las
+    columnas se leen segun el orden alfabetico de esas letras, no de
+    izquierda a derecha. La clave no puede repetir letras porque eso
+    haria ambigua la lectura.
+    """
+    clave = clave.upper()
+
+    if len(clave) < 2:
         raise ValueError(
-            "Error: el número de columnas debe ser mayor que 0."
+            "Error: la clave debe tener al menos 2 letras."
         )
 
+    if not clave.isalpha():
+        raise ValueError("Error: la clave solo debe contener letras.")
+
+    if len(set(clave)) != len(clave):
+        raise ValueError(
+            "Error: la clave no puede tener letras repetidas."
+        )
+
+    columnas = len(clave)
     limpio = texto.replace(" ", "")
 
     relleno = limpio
@@ -135,18 +152,26 @@ def transposicion_columnar(texto: str, columnas: int) -> dict:
     matriz = []
 
     for i in range(filas):
-        matriz.append(list(relleno[i * columnas:(i + 1) * columnas]))
+        fila = {}
 
+        for j in range(columnas):
+            fila[clave[j]] = relleno[i * columnas + j]
+
+        matriz.append(fila)
+
+    orden = sorted(range(columnas), key=lambda j: clave[j])
     resultado = ""
 
-    for columna in range(columnas):
-        for fila in range(filas):
-            resultado += matriz[fila][columna]
+    for j in orden:
+        for i in range(filas):
+            resultado += matriz[i][clave[j]]
 
     return {
         "texto": texto,
+        "clave": clave,
         "columnas": columnas,
         "filas": filas,
+        "orden_lectura": [f"{j + 1}:{clave[j]}" for j in orden],
         "matriz": matriz,
         "texto_relleno": relleno,
         "resultado": resultado,
